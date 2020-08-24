@@ -1,12 +1,10 @@
 let toresize = false;
 let BODY = null;
 
-const GRID_SIZE = 6;
 const GRID_LENGTH = 600;
 const RADIUS = 10;
 const MARGIN = 10;
 const ENDINGCARD_SIZE = 900;
-const AMOUNT_OF_PLAYERS = 2;
 let COLORS = [];
 
 let x, y, clickHasHappened;
@@ -15,12 +13,14 @@ let sides;
 let player;
 let score;
 let gameState;
+let amountOfPlayers;
+let gridSize;
 
 function setup() {//creates the canvas and sets everything that needs to be set before the game starts
   let c = createCanvas(100, 100);
 
   //list of colors used for the different players (color 0 is the neutral color used for menus and stuff)
-  COLORS.push(color(200));//gray
+  COLORS.push(color(150));//gray
   COLORS.push(color(40, 70, 255));//blue
   COLORS.push(color(255, 60, 10));//red
   COLORS.push(color(30, 255, 50));//green
@@ -29,7 +29,7 @@ function setup() {//creates the canvas and sets everything that needs to be set 
   COLORS.push(color(20, 230, 255));//cyan
   COLORS.push(color(10, 10, 10));//black
 
-  gameState = "menu";
+  setMenu();
 
 }
 
@@ -37,7 +37,7 @@ function setGame(){//sets every value related to the game like resetting the sco
 
   score = [];
   score.push(0);
-  for(let i=0; i<AMOUNT_OF_PLAYERS; i++){
+  for(let i=0; i<amountOfPlayers; i++){
     score.push(0);
   }
   player = 1;
@@ -47,16 +47,16 @@ function setGame(){//sets every value related to the game like resetting the sco
   gameState = "playing";
 
   //creating the squares
-  for(let i=0; i<GRID_SIZE-1; i++){
+  for(let i=0; i<gridSize-1; i++){
     squares[i] = [];
-    for(let j=0; j<GRID_SIZE-1; j++){
+    for(let j=0; j<gridSize-1; j++){
       squares[i].push({c:color(255), sides:[]});//each square contains a color and a list of adjacent sides
     }
   }
 
   //creating the sides, this is done twice, to handle horizontal and vertical sides
-  for(let i=0; i<GRID_SIZE-1; i++){
-    for(let j=0; j<GRID_SIZE; j++){
+  for(let i=0; i<gridSize-1; i++){
+    for(let j=0; j<gridSize; j++){
 
       sides.push({c:COLORS[0], squares:[]});//each side contains a color and a list of adjacent squares
 
@@ -66,7 +66,7 @@ function setGame(){//sets every value related to the game like resetting the sco
         sides[sides.length-1].squares.push(squares[i][j-1]);
         squares[i][j-1].sides.push(sides[sides.length-1]);
       }
-      if(j<GRID_SIZE-1){
+      if(j<gridSize-1){
         sides[sides.length-1].squares.push(squares[i][j]);
         squares[i][j].sides.push(sides[sides.length-1]);
       }
@@ -74,19 +74,25 @@ function setGame(){//sets every value related to the game like resetting the sco
   }
 
   //similar code to the block above, this one handles vertical sides
-  for(let i=0; i<GRID_SIZE; i++){
-    for(let j=0; j<GRID_SIZE-1; j++){
+  for(let i=0; i<gridSize; i++){
+    for(let j=0; j<gridSize-1; j++){
       sides.push({c:COLORS[0], squares:[]});
       if(i-1>=0){
         sides[sides.length-1].squares.push(squares[i-1][j]);
         squares[i-1][j].sides.push(sides[sides.length-1]);
       }
-      if(i<GRID_SIZE-1){
+      if(i<gridSize-1){
         sides[sides.length-1].squares.push(squares[i][j]);
         squares[i][j].sides.push(sides[sides.length-1]);
       }
     }
   }
+}
+
+function setMenu(){//sets every value related to the menu
+  gameState = "menu";
+  amountOfPlayers = 2;
+  gridSize = 5;
 }
 
 function windowResized() {//whenever the window changes size resize is called
@@ -141,7 +147,7 @@ function handleClickOnSide(side){//decides what to do after the player clicked o
           square.c = side.c;
           score[player]++;
           score[0]++;
-          if(score[0] == (GRID_SIZE - 1)*(GRID_SIZE - 1)){//set an ending flag to display the ending scene
+          if(score[0] == (gridSize - 1)*(gridSize - 1)){//set an ending flag to display the ending scene
             gameState = "ended";
             endingTime = millis();
           }
@@ -149,7 +155,7 @@ function handleClickOnSide(side){//decides what to do after the player clicked o
       }
       if(!complete){//if no square has been completed the active player should change, otherwise nothing happens
         player++;
-        if(player == AMOUNT_OF_PLAYERS+1)player = 1;
+        if(player == amountOfPlayers+1)player = 1;
       }
     }
   }
@@ -157,6 +163,7 @@ function handleClickOnSide(side){//decides what to do after the player clicked o
 
 function handleButton(xPos, yPos, size, innerText, textColor, bttnColor, callback){
 
+  textSize(size);
   let bttnW = textWidth(innerText) + MARGIN;
   let bttnH = size + MARGIN;
 
@@ -171,7 +178,6 @@ function handleButton(xPos, yPos, size, innerText, textColor, bttnColor, callbac
   fill(bttnColor);
   rect(xPos, yPos, bttnW, bttnH, 10);
   fill(textColor);
-  textSize(size);
   textAlign(LEFT, TOP);
   text(innerText, xPos + MARGIN/2, yPos + MARGIN/2);
 }
@@ -180,31 +186,31 @@ function displayGame(){//displays the game and performs the logic associated wit
 
   //displaying the scores of each player
   textSize(30);
-  for(let i=1; i<=AMOUNT_OF_PLAYERS; i++){
+  for(let i=1; i<=amountOfPlayers; i++){
     fill(COLORS[i]);
-    text(score[i], map(i, 1, AMOUNT_OF_PLAYERS, -GRID_LENGTH/3.5, GRID_LENGTH/3.5), -GRID_LENGTH/1.5);
+    text(score[i], map(i, 1, amountOfPlayers, -GRID_LENGTH/3.5, GRID_LENGTH/3.5), -GRID_LENGTH/1.5);
     fill(0);
-    if(i < AMOUNT_OF_PLAYERS)text(":", map(i+0.5, 1, AMOUNT_OF_PLAYERS, -GRID_LENGTH/3.5, GRID_LENGTH/3.5), -GRID_LENGTH/1.5);
+    if(i < amountOfPlayers)text(":", map(i+0.5, 1, amountOfPlayers, -GRID_LENGTH/3.5, GRID_LENGTH/3.5), -GRID_LENGTH/1.5);
   }
 
   //displaying the squares
-  for(let i=0; i<GRID_SIZE-1; i++){
-    for(let j=0; j<GRID_SIZE-1; j++){
+  for(let i=0; i<gridSize-1; i++){
+    for(let j=0; j<gridSize-1; j++){
       fill(squares[i][j].c);
-      rect(map(i, 0, GRID_SIZE-1, -GRID_LENGTH/2, GRID_LENGTH/2)+MARGIN,
-        map(j, 0, GRID_SIZE-1, -GRID_LENGTH/2, GRID_LENGTH/2)+MARGIN,
-        GRID_LENGTH/(GRID_SIZE-1)-2*MARGIN);
+      rect(map(i, 0, gridSize-1, -GRID_LENGTH/2, GRID_LENGTH/2)+MARGIN,
+        map(j, 0, gridSize-1, -GRID_LENGTH/2, GRID_LENGTH/2)+MARGIN,
+        GRID_LENGTH/(gridSize-1)-2*MARGIN);
     }
   }
 
   //displaying the sides
   let ind = 0;
-  for(let i=0; i<GRID_SIZE-1; i++){
-    for(let j=0; j<GRID_SIZE; j++){
+  for(let i=0; i<gridSize-1; i++){
+    for(let j=0; j<gridSize; j++){
       fill(sides[ind].c);
-      let rx = map(i, 0, GRID_SIZE-1, -GRID_LENGTH/2, GRID_LENGTH/2) - RADIUS/2;
-      let ry = map(j, 0, GRID_SIZE-1, -GRID_LENGTH/2, GRID_LENGTH/2) - RADIUS/2;
-      let rw = GRID_LENGTH/(GRID_SIZE-1);
+      let rx = map(i, 0, gridSize-1, -GRID_LENGTH/2, GRID_LENGTH/2) - RADIUS/2;
+      let ry = map(j, 0, gridSize-1, -GRID_LENGTH/2, GRID_LENGTH/2) - RADIUS/2;
+      let rw = GRID_LENGTH/(gridSize-1);
       let rh = RADIUS;
 
       //if a player clicked we check if the mouse is on one of the sides, in which case we call handleClickOnSide to deal with it
@@ -221,13 +227,13 @@ function displayGame(){//displays the game and performs the logic associated wit
   }
 
   //basically a copy of the previous block of code, to handle the sides it's easier to do horizontals and verticals separatedly
-  for(let i=0; i<GRID_SIZE; i++){
-    for(let j=0; j<GRID_SIZE-1; j++){
+  for(let i=0; i<gridSize; i++){
+    for(let j=0; j<gridSize-1; j++){
       fill(sides[ind].c);
-      let rx = map(i, 0, GRID_SIZE-1, -GRID_LENGTH/2, GRID_LENGTH/2) - RADIUS/2;
-      let ry = map(j, 0, GRID_SIZE-1, -GRID_LENGTH/2, GRID_LENGTH/2) - RADIUS/2;
+      let rx = map(i, 0, gridSize-1, -GRID_LENGTH/2, GRID_LENGTH/2) - RADIUS/2;
+      let ry = map(j, 0, gridSize-1, -GRID_LENGTH/2, GRID_LENGTH/2) - RADIUS/2;
       let rw = RADIUS;
-      let rh = GRID_LENGTH/(GRID_SIZE-1);
+      let rh = GRID_LENGTH/(gridSize-1);
       if(clickHasHappened){
         if(x>=rx-MARGIN && x<=rx+rw+MARGIN){
           if(y>=ry && y<=ry+rh){
@@ -243,11 +249,18 @@ function displayGame(){//displays the game and performs the logic associated wit
 
   //displaying the dots between sides
   fill(0);
-  for(let i=0; i<GRID_SIZE; i++){
-    for(let j=0; j<GRID_SIZE; j++){
-      circle(map(i, 0, GRID_SIZE-1, -GRID_LENGTH/2, GRID_LENGTH/2), map(j, 0, GRID_SIZE-1, -GRID_LENGTH/2, GRID_LENGTH/2), RADIUS);
+  for(let i=0; i<gridSize; i++){
+    for(let j=0; j<gridSize; j++){
+      circle(map(i, 0, gridSize-1, -GRID_LENGTH/2, GRID_LENGTH/2), map(j, 0, gridSize-1, -GRID_LENGTH/2, GRID_LENGTH/2), RADIUS);
     }
   }
+
+  //displaying 2 buttons, one resets the game, the other let's you access the menu
+  let restartText = "Restart";
+  let menuText = "Menu";
+  textSize(40);
+  handleButton(-GRID_LENGTH/4 - (textWidth(restartText)+MARGIN)/2, GRID_LENGTH/1.5-20, 40, restartText, color(255), COLORS[0], setGame);
+  handleButton(GRID_LENGTH/4 - (textWidth(menuText)+MARGIN)/2, GRID_LENGTH/1.5-20, 40, menuText, color(255), COLORS[0], setMenu);
 }
 
 function displayEnding(){//displays the ending scene
@@ -262,11 +275,11 @@ function displayEnding(){//displays the ending scene
 
     //depending on who won a different text is displayed
     let maxScore = 0;
-    for(let i=1; i<=AMOUNT_OF_PLAYERS; i++){//finding the bigger score
+    for(let i=1; i<=amountOfPlayers; i++){//finding the bigger score
       if(score[i] > maxScore)maxScore = score[i];
     }
     let winners = [];
-    for(let i=1; i<=AMOUNT_OF_PLAYERS; i++){//finding all the winners (those that have a score equale to the best score)
+    for(let i=1; i<=amountOfPlayers; i++){//finding all the winners (those that have a score equale to the best score)
       if(score[i] == maxScore)winners.push(i);
     }
 
@@ -276,7 +289,7 @@ function displayEnding(){//displays the ending scene
       textAlign(CENTER, CENTER);
       text("Player "+winners[0]+" won!!", 0, 0);
     }
-    else if(winners.length < AMOUNT_OF_PLAYERS){//if there are multiple winners and not every player won GG, let's congratulate them
+    else if(winners.length < amountOfPlayers){//if there are multiple winners and not every player won GG, let's congratulate them
       fill(COLORS[0]);
       textSize(40);
       textAlign(CENTER, CENTER);
@@ -297,6 +310,7 @@ function displayEnding(){//displays the ending scene
 
   if(millis()-endingTime > 1700){//After a bit the replay and menu buttons get displayed
 
+    textSize(40);
     let playText = "Play Again";
     let bttn1W = textWidth(playText) + MARGIN;
     let bttn1H = 40 + MARGIN;
@@ -311,15 +325,78 @@ function displayEnding(){//displays the ending scene
       textColor.setAlpha(map(millis()-endingTime, 1700, 2300, 0, 255));
     }
     handleButton(-bttn1W/2 - GRID_LENGTH/4, GRID_LENGTH/4 - bttn1H/2, 40, playText, textColor, COLORS[0], setGame);
-    handleButton(-bttn2W/2 + GRID_LENGTH/4, GRID_LENGTH/4 - bttn2H/2, 40, menuText, textColor, COLORS[0], setGame);
+    handleButton(-bttn2W/2 + GRID_LENGTH/4, GRID_LENGTH/4 - bttn2H/2, 40, menuText, textColor, COLORS[0], setMenu);
     COLORS[0].setAlpha(255);
   }
 }
 
 function displayMenu(){//displays the menu
+
+  let hasPlayerBeenSelected = false;
+  function numOFPlayersSelected(){//function called by every "chose the amount of players" button
+    hasPlayerBeenSelected = true;
+  }
+
+  textSize(40);
+  let playersText = "Number of players:";
+
+  //calculating the width of the row that's about to be displayed (so fancy math can be used to center everything)
+  let rowLength = textWidth(playersText) + MARGIN;
+  for(let i=2; i<COLORS.length; i++)rowLength += textWidth(""+i) + 1.5*MARGIN;
+  rowLength -= MARGIN/2;
+
+  fill(COLORS[0]);
+  text(playersText, -rowLength/2, -GRID_LENGTH/3);
+
+  for(let i=2; i<COLORS.length; i++){//displaying the buttons for choosing the amount of players
+
+    //based on the amount of players currently chosen the buttons are colored differently
+    let bttnColor = COLORS[i];
+    if(i > amountOfPlayers)bttnColor = COLORS[0];
+
+    handleButton(map(i, 2, COLORS.length-1, -rowLength/2 + textWidth(playersText) + MARGIN, rowLength/2 - textWidth(""+(COLORS.length-1)) - MARGIN),
+      -GRID_LENGTH/3, 40, ""+i, color(255), bttnColor, numOFPlayersSelected);
+
+    if(hasPlayerBeenSelected){//if the previous button has been clicked the amount of players is changed
+      hasPlayerBeenSelected = false;
+      amountOfPlayers = i;
+    }
+  }
+
+
+  let hasSizeBeenSelected = false;
+  function sizeSelected(){//function called by every "chose the size of the grid" button
+    hasSizeBeenSelected = true;
+  }
+
+  let sizeText = "Size of the grid:";
+
+  //calculating the width of the row that's about to be displayed (so fancy math can be used to center everything)
+  rowLength = textWidth(sizeText) + MARGIN;
+  for(let i=2; i<COLORS.length; i++)rowLength += textWidth(i+"x"+i) + 1.5*MARGIN;
+  rowLength -= MARGIN/2;
+
+  fill(COLORS[0]);
+  text(sizeText, -rowLength/2, 0);
+
+  for(let i=2; i<COLORS.length; i++){//displaying the buttons for choosing the size of the grid
+
+    //based on the size currently chosen the buttons are colored differently
+    let bttnColor = COLORS[i];
+    if(i > gridSize - 1)bttnColor = COLORS[0];
+
+    handleButton(map(i, 2, COLORS.length-1, -rowLength/2 + textWidth(sizeText) + MARGIN, rowLength/2 - textWidth(""+(COLORS.length-1)) - MARGIN),
+      0, 40, i+"x"+i, color(255), bttnColor, sizeSelected);
+
+    if(hasSizeBeenSelected){//if the previous button has been clicked the size is changed
+      hasSizeBeenSelected = false;
+      gridSize = i + 1;
+    }
+  }
+
   let playText = "Play";
   let bttnW = textWidth(playText) + MARGIN;
-  handleButton(-bttnW/2, 0, 40, playText, color(255), COLORS[0], setGame);
+  handleButton(-bttnW/2, GRID_LENGTH/3, 40, playText, color(255), COLORS[0], setGame);
 }
 
 function draw() {//function that gets called every frame, used to display stuff on screen and to handle the logic of the game
