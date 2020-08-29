@@ -5,6 +5,7 @@ const GRID_LENGTH = 600;
 const RADIUS = 10;
 const MARGIN = 10;
 const ENDINGCARD_SIZE = 900;
+let SQUARE_COLOR;
 let COLORS = [];
 
 let x, y, clickHasHappened;
@@ -15,6 +16,9 @@ let score;
 let gameState;
 let amountOfPlayers;
 let gridSize;
+let isPlayerAI;
+let mouseDisabled;
+let firstFrame;
 
 function setup() {//creates the canvas and sets everything that needs to be set before the game starts
   let c = createCanvas(100, 100);
@@ -29,12 +33,17 @@ function setup() {//creates the canvas and sets everything that needs to be set 
   COLORS.push(color(20, 230, 255));//cyan
   COLORS.push(color(10, 10, 10));//black
 
+  SQUARE_COLOR = color(255);//white
+
   setMenu();
 
 }
 
 function setGame(){//sets every value related to the game like resetting the score, clearing the grid and so on
 
+  background(255);
+
+  firstFrame = true;
   score = [];
   score.push(0);
   for(let i=0; i<amountOfPlayers; i++){
@@ -50,7 +59,7 @@ function setGame(){//sets every value related to the game like resetting the sco
   for(let i=0; i<gridSize-1; i++){
     squares[i] = [];
     for(let j=0; j<gridSize-1; j++){
-      squares[i].push({c:color(255), sides:[]});//each square contains a color and a list of adjacent sides
+      squares[i].push({c:SQUARE_COLOR, sides:[]});//each square contains a color and a list of adjacent sides
     }
   }
 
@@ -90,9 +99,17 @@ function setGame(){//sets every value related to the game like resetting the sco
 }
 
 function setMenu(){//sets every value related to the menu
+
+  background(255);
+
   gameState = "menu";
   amountOfPlayers = 2;
   gridSize = 5;
+  mouseDisabled = false;
+  isPlayerAI = [];
+  for(let i=0; i<COLORS.length; i++){
+    isPlayerAI.push(false);
+  }
 }
 
 function windowResized() {//whenever the window changes size resize is called
@@ -119,14 +136,20 @@ function resize(){//resizes the canvas depending on the size of the body
 function mouseClicked() {//when a player clicks the coordinates of the cursor (adjusted to the coordinate system used for rendering objects) are stored
   x = width * map(mouseX, 0, width, -500/min(width, height), 500/min(width, height));
   y = height * map(mouseY, 0, height, -500/min(width, height), 500/min(width, height));
-  clickHasHappened = true;
+  if(!mouseDisabled)clickHasHappened = true;
+}
+
+function countCompleteSides(square){
+  let completeSides = 4;
+  for(let i=0;i<square.sides.length;i++){
+    if(square.sides[i].c == COLORS[0])completeSides--;
+  }
+  return completeSides;
 }
 
 function isSquareComplete(square){//returns if the square has every side colored or not
-  for(let i=0;i<square.sides.length;i++){//cycles through every side that borders the square, if at least one of them is neutral we return false
-    if(square.sides[i].c == COLORS[0])return false;
-  }
-  return true;//if after checking every side none of them are neutral the square is complete, we return true
+
+  return countCompleteSides(square) == 4;
 }
 
 function handleClickOnSide(side){//decides what to do after the player clicked on a side
@@ -157,6 +180,10 @@ function handleClickOnSide(side){//decides what to do after the player clicked o
         player++;
         if(player == amountOfPlayers+1)player = 1;
       }
+
+      mouseDisabled = true;
+      setTimeout(setAIsTurn, 50);//the function to set the AI is called after a short time to allow the program to draw before doing the computations
+                                 //this function first controls if it's the turn of a AI then procedes
     }
   }
 }
@@ -261,6 +288,13 @@ function displayGame(){//displays the game and performs the logic associated wit
   textSize(40);
   handleButton(-GRID_LENGTH/4 - (textWidth(restartText)+MARGIN)/2, GRID_LENGTH/1.5-20, 40, restartText, color(255), COLORS[0], setGame);
   handleButton(GRID_LENGTH/4 - (textWidth(menuText)+MARGIN)/2, GRID_LENGTH/1.5-20, 40, menuText, color(255), COLORS[0], setMenu);
+
+  if(firstFrame && isPlayerAI[player]){
+    mouseDisabled = true;
+    setTimeout(setAIsTurn, 50);
+  }
+
+  firstFrame = false;
 }
 
 function displayEnding(){//displays the ending scene
@@ -332,46 +366,44 @@ function displayEnding(){//displays the ending scene
 
 function displayMenu(){//displays the menu
 
-  let hasPlayerBeenSelected = false;
-  function numOFPlayersSelected(){//function called by every "chose the amount of players" button
-    hasPlayerBeenSelected = true;
-  }
-
   textSize(40);
   let playersText = "Number of players:";
 
   //calculating the width of the row that's about to be displayed (so fancy math can be used to center everything)
   let rowLength = textWidth(playersText) + MARGIN;
-  for(let i=2; i<COLORS.length; i++)rowLength += textWidth(""+i) + 1.5*MARGIN;
+  for(let i=1; i<COLORS.length; i++)rowLength += textWidth(""+i) + 1.5*MARGIN;
   rowLength -= MARGIN/2;
 
   fill(COLORS[0]);
   text(playersText, -rowLength/2, -GRID_LENGTH/3);
 
-  for(let i=2; i<COLORS.length; i++){//displaying the buttons for choosing the amount of players
+  for(let i=1; i<COLORS.length; i++){//displaying the buttons for choosing the amount of players
 
     //based on the amount of players currently chosen the buttons are colored differently
     let bttnColor = COLORS[i];
     if(i > amountOfPlayers)bttnColor = COLORS[0];
 
-    handleButton(map(i, 2, COLORS.length-1, -rowLength/2 + textWidth(playersText) + MARGIN, rowLength/2 - textWidth(""+(COLORS.length-1)) - MARGIN),
-      -GRID_LENGTH/3, 40, ""+i, color(255), bttnColor, numOFPlayersSelected);
+    textSize(40);
+    handleButton(map(i, 1, COLORS.length-1, -rowLength/2 + textWidth(playersText) + MARGIN, rowLength/2 - textWidth(""+(COLORS.length-1)) - MARGIN),
+      -GRID_LENGTH/3, 40, ""+i, color(255), bttnColor, function(){amountOfPlayers = max(i,2);
+      for(let j=i+1; j<isPlayerAI.length; j++)isPlayerAI[j] = false;});
 
-    if(hasPlayerBeenSelected){//if the previous button has been clicked the amount of players is changed
-      hasPlayerBeenSelected = false;
-      amountOfPlayers = i;
+
+    if(i <= amountOfPlayers){
+      if(isPlayerAI[i])bttnColor = COLORS[i];
+      else bttnColor = COLORS[0];
+      handleButton(map(i, 1, COLORS.length-1, -rowLength/2 + textWidth(playersText) + MARGIN, rowLength/2 - textWidth(""+(COLORS.length-1)) - MARGIN),
+        -GRID_LENGTH/3 + 40 + MARGIN, 28, "AI", color(255), bttnColor, function(){isPlayerAI[i] = !isPlayerAI[i]});
     }
+
   }
 
 
-  let hasSizeBeenSelected = false;
-  function sizeSelected(){//function called by every "chose the size of the grid" button
-    hasSizeBeenSelected = true;
-  }
 
   let sizeText = "Size of the grid:";
 
   //calculating the width of the row that's about to be displayed (so fancy math can be used to center everything)
+  textSize(40);
   rowLength = textWidth(sizeText) + MARGIN;
   for(let i=2; i<COLORS.length; i++)rowLength += textWidth(i+"x"+i) + 1.5*MARGIN;
   rowLength -= MARGIN/2;
@@ -386,17 +418,15 @@ function displayMenu(){//displays the menu
     if(i > gridSize - 1)bttnColor = COLORS[0];
 
     handleButton(map(i, 2, COLORS.length-1, -rowLength/2 + textWidth(sizeText) + MARGIN, rowLength/2 - textWidth(""+(COLORS.length-1)) - MARGIN),
-      0, 40, i+"x"+i, color(255), bttnColor, sizeSelected);
+      0, 40, i+"x"+i, color(255), bttnColor, function(){gridSize = i + 1;});
 
-    if(hasSizeBeenSelected){//if the previous button has been clicked the size is changed
-      hasSizeBeenSelected = false;
-      gridSize = i + 1;
-    }
   }
 
+
   let playText = "Play";
-  let bttnW = textWidth(playText) + MARGIN;
+  bttnW = textWidth(playText) + MARGIN;
   handleButton(-bttnW/2, GRID_LENGTH/3, 40, playText, color(255), COLORS[0], setGame);
+
 }
 
 function draw() {//function that gets called every frame, used to display stuff on screen and to handle the logic of the game
